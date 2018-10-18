@@ -13,26 +13,40 @@ class DecisionTree(BaseEstimator):
         self.debug = debug
         if criterion=='entropy':
             self.criterion_func = self._entropy
+            self.type_answer = 'max_count' # 'avg'
 
     def fit(self, X, y):
         data = np.c_[X, y]
-        self.instruction = self._get_instruction(data, '1')
-    
-
-        
+        self.y_var = np.unique(y, axis=0)
+        self.tree = np.array(self._get_tree(data, '1'))
 
     def predict(self, X):
-        pass
-        
-    def predict_proba(self, X):
-        pass
+        y = []
+        for line in X:
+            answer = self._get_leaf(line,'1')
+            y.append(self._get_answer_val(answer))
+        y = np.array(y)
+        return(y)
 
+    def predict_proba(self, X):
+        y = []
+        for line in X:
+            answer = self._get_leaf(line,'1')
+            var_answer = answer[:,0]
+            dif_var = np.array(np.setdiff1d(self.y_var, var_answer))
+            p_0 = np.array([0 for x in range(len(dif_var))])
+            dif = np.c_[dif_var, p_0]
+            answer = np.append(answer, dif, axis=0)
+            answer = answer[answer[:,0].argsort()]
+            y.append(answer[:,1])
+        y = np.array(y)
+        return(y)
+
+    # Функции оценки
     def _entropy(self, y):
         proba = self._get_proba(y)
         entropy = 0
-        print(proba)
         for x in proba:
-            
             entropy -= x[1]*mt.log(x[1], 2)
         return(entropy)
 
@@ -49,12 +63,10 @@ class DecisionTree(BaseEstimator):
         val, count = np.unique(y, return_counts=True, axis=0)
         value_count = np.c_[val, count]
         count_y = y.shape[0]
-        print(value_count)
-        proba = np._c[value_count[:,0],value_count[:,1]/count_y]
-        print(proba)
+        proba = np.c_[value_count[:,0], value_count[:,1]/count_y]
         return(proba)
-        
-
+    
+    # Построение дерева
     def _information_gain(self, data, data_left, data_right):
         count = data.shape[0]
         count_left = data_left.shape[0]
@@ -66,16 +78,16 @@ class DecisionTree(BaseEstimator):
         return(ig)
 
     def _best_split(self, data):
-        index_y = data.shape[1]
-        count_x = index_y-1
+        index_y = data.shape[1]-1
         best_split = {'ig': 0, 'column': 0, 'val': 0}
-        for i in range(count_x):
+        for i in range(index_y):
             unique_val = np.unique(data[:, i], axis=0)
-            unique_val = np.sort(unique_val)[-1]
+            unique_val = np.sort(unique_val)[:-1]
             for val in unique_val:
                 data_left = data[data[:,i]<=val]
                 data_right = data[data[:,i]>val]
                 ig = self._information_gain(data[:, index_y], data_left[:, index_y], data_right[:, index_y])
+                
                 if ig > best_split['ig']:
                     best_split['ig'] = ig
                     best_split['column'] = i
@@ -85,33 +97,53 @@ class DecisionTree(BaseEstimator):
         else:
             return(best_split)
 
-    def _get_instruction(self, data, id_instruction):
-        split = self._best_split(data)
-        if split:
+    def _get_tree(self, data, id_tree):
+        split = data.shape[0]>=self.min_samples_split \
+                    and self._best_split(data)
+        if split and len(id_tree) < self.max_depth:
             # Деление ветвей
-            id_instr_left = id_instruction + '1'
-            id_instr_right = id_instruction + '2'
-            instruction = [{'id': id_instruction,
-                           'column': split['column'], 
-                           'val': split['val'],
-                           'id_left': id_instr_left,
-                           'id_right': id_instr_right,
-                           'leaf_data': False}]
+            id_tree_left = id_tree + '1'
+            id_tree_right = id_tree + '2'
+            tree = [[id_tree,
+                    {'column': split['column'], 
+                     'val': split['val'],
+                     'id_left': id_tree_left,
+                     'id_right': id_tree_right,
+                     'is_leaf' : False,
+                     'leaf_data': None}]]
             data_left = data[data[:,split['column']]<=split['val']]
             data_right = data[data[:,split['column']]>split['val']]
-            instruction.extend(self._get_instruction(data_left, id_instr_left))
-            instruction.extend(self._get_instruction(data_right, id_instr_right))
-            return(instruction)
+            tree.extend(self._get_tree(data_left, id_tree_left))
+            tree.extend(self._get_tree(data_right, id_tree_right))
+            return(tree)
         else:
             # Формирование листа дерева
+            proba = self._get_proba(data[:,-1])
+            tree = [[id_tree,
+                    {'column': None, 
+                     'val': None,
+                     'id_left': None,
+                     'id_right': None,
+                     'is_leaf' : True,
+                     'leaf_data': proba}]]
+        return(tree)
 
-            instruction = [{'id': id_instruction,
-                           'column': None, 
-                           'val': None,
-                           'id_left': None,
-                           'id_right': None,
-                           'leaf_data': False}]
-            pass
-    
+    # Поиск решения по дереву
+    def _get_leaf(self, line, id_tree):
+        instruction = self.tree[self.tree[:,0]==id_tree][0][1]
+        if instruction['is_leaf']:
+            return(instruction['leaf_data'])
+        else:
+            if line[instruction['column']]<=instruction['val']:
+                return(self._get_leaf(line, instruction['id_left']))
+            else:
+                return(self._get_leaf(line, instruction['id_right']))
 
-        
+    def _get_answer_val(self, answer_arr):
+        if self.type_answer == 'max_count':
+            answer = answer_arr[answer_arr[:,1].argsort()]
+            answer = answer[-1][0]
+            return(answer)
+        elif self.type_answer == 'avg':
+            # расчет средней для регрессии
+            return(0)
