@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 import math as mt
 from sklearn.base import BaseEstimator
 
@@ -11,11 +10,21 @@ class DecisionTree(BaseEstimator):
         self.max_depth = max_depth
         self.min_samples_split = min_samples_split
         self.debug = debug
-        if criterion=='entropy':
-            self.criterion_func = self._entropy
-            self.type_answer = 'max_count' # 'avg'
+        self.criterion = criterion
 
     def fit(self, X, y):
+        if self.criterion=='entropy':
+            self.criterion_func = self._entropy
+            self.type_answer = 'max_count'
+        elif self.criterion=='gini':
+            self.criterion_func = self._gini
+            self.type_answer = 'max_count'
+        elif self.criterion=='variance':
+            self.criterion_func = self._variance
+            self.type_answer = 'avg'
+        elif self.criterion=='mad_median':
+            self.criterion_func = self._mad_median
+            self.type_answer = 'avg'
         data = np.c_[X, y]
         self.y_var = np.unique(y, axis=0)
         self.tree = np.array(self._get_tree(data, '1'))
@@ -46,18 +55,25 @@ class DecisionTree(BaseEstimator):
     def _entropy(self, y):
         proba = self._get_proba(y)
         entropy = 0
-        for x in proba:
-            entropy -= x[1]*mt.log(x[1], 2)
+        for p in proba:
+            entropy -= p[1]*mt.log(p[1], 2)
         return(entropy)
 
     def _gini(self, y):
-        pass
+        proba = self._get_proba(y)
+        gini = 1
+        for p in proba:
+            gini -= p[1]**2
+        return(gini)
 
     def _variance(self, y):
-        pass
+        variance = y.std()**2
+        return(variance)
 
     def _mad_median(self, y):
-        pass
+        sum_dif_median = (np.abs(y - np.median(y))).sum()
+        mad_median = sum_dif_median/y.shape[0]
+        return(mad_median)
 
     def _get_proba(self, y):
         val, count = np.unique(y, return_counts=True, axis=0)
@@ -145,5 +161,6 @@ class DecisionTree(BaseEstimator):
             answer = answer[-1][0]
             return(answer)
         elif self.type_answer == 'avg':
-            # расчет средней для регрессии
-            return(0)
+            answer = answer_arr[:,0]*answer_arr[:,1]
+            answer = answer.sum()
+            return(answer)

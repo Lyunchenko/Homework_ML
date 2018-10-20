@@ -17,8 +17,45 @@ class TestStringMethods(unittest.TestCase):
         test_arr.append({'arr': np.array([1, 2, 3, 4, 5, 6]), 
         	             'answer':2.585})
         for x in test_arr:
-        	entropy = obj_tree._entropy(x['arr'])
-        	self.assertEqual(round(entropy, 3), x['answer'])
+        	val = obj_tree._entropy(x['arr'])
+        	self.assertEqual(round(val, 3), x['answer'])
+
+    def test_gini(self):
+        obj_tree = tree.DecisionTree()
+        test_arr = []
+        test_arr.append({'arr': np.array([1 for x in range(9)] + [0 for x in range(11)]), 
+                         'answer':0.495})
+        test_arr.append({'arr': np.array([1 for x in range(8)] + [0 for x in range(5)]), 
+                         'answer':0.473})
+        test_arr.append({'arr': np.array([1 for x in range(1)] + [0 for x in range(6)]), 
+                         'answer':0.245})
+        test_arr.append({'arr': np.array([1, 2, 3, 4, 5, 6]), 
+                         'answer':0.833})
+        for x in test_arr:
+            val = obj_tree._gini(x['arr'])
+            self.assertEqual(round(val, 3), x['answer'])
+
+    def test_variance(self):
+        obj_tree = tree.DecisionTree()
+        test_arr = []
+        test_arr.append({'arr': np.array([1, 2, 3, 4, 5, 6, 7, 8, 9]), 
+                         'answer':6.667})
+        test_arr.append({'arr': np.array([1, 2, 7, 4, 5, 6, 7, 8, 9]), 
+                         'answer':6.469})
+        for x in test_arr:
+            val = obj_tree._variance(x['arr'])
+            self.assertEqual(round(val, 3), x['answer'])
+
+    def test_mad_median(self):
+        obj_tree = tree.DecisionTree()
+        test_arr = []
+        test_arr.append({'arr': np.array([1, 2, 3, 4, 5, 6, 7, 8, 9]), 
+                         'answer':2.222})
+        test_arr.append({'arr': np.array([1, 2, 7, 4, 5, 6, 7, 8, 9]), 
+                         'answer':2.111})
+        for x in test_arr:
+            val = obj_tree._mad_median(x['arr'])
+            self.assertEqual(round(val, 3), x['answer'])
 
     def test_fit_and_predict(self):
         obj = tree.DecisionTree(min_samples_split=2, max_depth=1)
@@ -33,6 +70,7 @@ class TestStringMethods(unittest.TestCase):
         result_y = obj.predict(X)
         self.assertEqual(result_y[0], 1)
 
+    '''
     def test_predict_proba(self):
 
         obj = tree.DecisionTree(min_samples_split=2, max_depth=2)
@@ -46,7 +84,7 @@ class TestStringMethods(unittest.TestCase):
         X = np.array([[7, 8, 9], [1, 1, 3]])
         print("\n")
         print(obj.predict_proba(X))
-
+    '''
 
 
 if __name__ == '__main__':
