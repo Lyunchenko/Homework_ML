@@ -113,8 +113,14 @@ class DecisionTree(BaseEstimator):
         else:
             return(best_split)
 
+    def _chek_y(self, data):
+        unique_val = np.unique(data[:,-1], axis=0)
+        answer = True if unique_val.shape[0]>1 else False
+        return(answer)
+
     def _get_tree(self, data, id_tree):
         split = data.shape[0]>=self.min_samples_split \
+                    and self._chek_y(data) \
                     and self._best_split(data)
         if split and len(id_tree) < self.max_depth:
             # Деление ветвей

@@ -70,6 +70,24 @@ class TestStringMethods(unittest.TestCase):
         result_y = obj.predict(X)
         self.assertEqual(result_y[0], 1)
 
+    def test_chek_y(self):
+        obj = tree.DecisionTree()
+        X = np.array([[1, 2, 3], 
+                      [0, 5, 6], 
+                      [7, 8, 9], 
+                      [2, 2, 4],
+                      [1, 1, 3]])
+        result = obj._chek_y(X)
+        self.assertEqual(result, True)
+
+        X = np.array([[1, 2, 1], 
+                      [0, 5, 1], 
+                      [7, 8, 1], 
+                      [2, 2, 1],
+                      [1, 1, 1]])
+        result = obj._chek_y(X)
+        self.assertEqual(result, False)
+
     '''
     def test_predict_proba(self):
 
